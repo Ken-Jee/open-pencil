@@ -52,9 +52,12 @@ test('selected-page assembly excludes unrelated content but keeps cross-page com
 
 /**
  * Page 1:2 places the inner component, which Outer encloses beside other layers on page 1:3.
- * `placed` adds an instance of Outer to page 1:3.
+ * `placed` adds an instance of Outer to page 1:3; `extra` adds records.
  */
-async function enclosedComponentArchive(placed = true): Promise<ArrayBuffer> {
+async function enclosedComponentArchive(
+  placed = true,
+  extra: NodeChange[] = []
+): Promise<ArrayBuffer> {
   await initCodec()
   const records: NodeChange[] = [
     { guid: guid(1), type: 'DOCUMENT' },
@@ -106,6 +109,7 @@ async function enclosedComponentArchive(placed = true): Promise<ArrayBuffer> {
     }
   ]
   if (!placed) records.pop()
+  records.push(...extra)
   return new Uint8Array(
     writeFigArchive({
       schemaDeflated: deflateSync(getSchemaBytes()),
@@ -179,3 +183,24 @@ test.each([false, true])(
     if (!resumed) expect(session.checkpoint().components.map(([id]) => id)).toContain('1:4')
   }
 )
+
+test('builds again an enclosed component deleted before its enclosing page loads', async () => {
+  // Inner holds an instance, whose copied layers take fresh IDs each time they are built.
+  const bytes = await enclosedComponentArchive(true, [
+    {
+      guid: guid(13),
+      type: 'INSTANCE',
+      parentIndex: { guid: guid(5), position: '"' },
+      symbolData: { symbolID: guid(11) }
+    }
+  ])
+  const session = createFigDocumentSession(bytes)
+  session.loadPage('1:2')
+  const inner = new Map(session.checkpoint().componentIds).get('1:5')
+  if (!inner) throw new Error('Missing inner component')
+  session.graph.deleteNode(inner)
+  session.loadPage('1:3')
+  const outer = new Map(session.checkpoint().components).get('1:4')
+  if (!outer) throw new Error('Missing outer component')
+  for (const { nodeId } of outer.nodes) expect(session.graph.getNode(nodeId)).toBeDefined()
+})

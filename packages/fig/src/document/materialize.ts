@@ -453,8 +453,9 @@ function materializeReaderInto(
       const id = sources.get(node.sourceId)
       const existing = id ? graph.getNode(id) : undefined
       if (existing) existingNodes.set(node, existing)
+      // A definition deleted since it was built is built again, like any missing layer.
       const component =
-        node.properties.type === 'SYMBOL' ? components.get(node.sourceId) : undefined
+        existing && node.properties.type === 'SYMBOL' ? components.get(node.sourceId) : undefined
       if (component) nested.push([node, component])
       else if (node.mainComponentId === null) node.children.forEach(collectExisting)
     }
