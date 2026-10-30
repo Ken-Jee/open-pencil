@@ -1,16 +1,10 @@
 import { expect, test } from 'bun:test'
 
+import { figArchiveOf } from '#fig-tests/helpers/fig-fixtures'
 import { guid } from '#fig-tests/helpers/guid'
-import { deflateSync } from 'fflate'
 
-import { createFigDocumentSession, materializeDocument, writeFigArchive } from '@open-pencil/fig'
-import {
-  createNodeChangesMessage,
-  encodeMessage,
-  getSchemaBytes,
-  initCodec,
-  type NodeChange
-} from '@open-pencil/kiwi/fig/codec'
+import { createFigDocumentSession, materializeDocument } from '@open-pencil/fig'
+import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
 import type { SceneGraph } from '@open-pencil/scene-graph'
 
 test('selected-page assembly excludes unrelated content but keeps cross-page components', () => {
@@ -58,7 +52,6 @@ async function enclosedComponentArchive(
   placed = true,
   extra: NodeChange[] = []
 ): Promise<ArrayBuffer> {
-  await initCodec()
   const records: NodeChange[] = [
     { guid: guid(1), type: 'DOCUMENT' },
     { guid: guid(2), type: 'CANVAS', parentIndex: { guid: guid(1), position: '!' } },
@@ -110,14 +103,7 @@ async function enclosedComponentArchive(
   ]
   if (!placed) records.pop()
   records.push(...extra)
-  return new Uint8Array(
-    writeFigArchive({
-      schemaDeflated: deflateSync(getSchemaBytes()),
-      kiwiData: encodeMessage(createNodeChangesMessage(0, 0, records)),
-      thumbnailPNG: new Uint8Array(),
-      metaJSON: '{}'
-    })
-  ).buffer
+  return figArchiveOf(records)
 }
 
 function layers(graph: SceneGraph, id: string): unknown {

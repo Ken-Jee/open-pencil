@@ -1,18 +1,11 @@
 import { expect, test } from 'bun:test'
 
+import { figArchiveOf } from '#fig-tests/helpers/fig-fixtures'
 import { guid } from '#fig-tests/helpers/guid'
 import { checkpointComponent } from '#fig/document/component/checkpoint'
 import { createFigDocumentSession, materializeDocument } from '#fig/document/materialize'
-import { deflateSync } from 'fflate'
 
-import { writeFigArchive } from '@open-pencil/fig'
-import {
-  createNodeChangesMessage,
-  encodeMessage,
-  getSchemaBytes,
-  initCodec,
-  type NodeChange
-} from '@open-pencil/kiwi/fig/codec'
+import type { NodeChange } from '@open-pencil/kiwi/fig/codec'
 
 test('constructs nested definitions once under their actual component parent', () => {
   const changes: NodeChange[] = [
@@ -128,7 +121,6 @@ test.each([
 ])(
   'resumes nested definitions after loading %s, then loads %s without duplicating nodes',
   async (first, second) => {
-    await initCodec()
     const records: NodeChange[] = [
       ...nestedComponentRecords(),
       { guid: guid(8), type: 'CANVAS', parentIndex: { guid: guid(1), position: 'b' } },
@@ -139,13 +131,7 @@ test.each([
         symbolData: { symbolID: guid(4) }
       }
     ]
-    const archive = writeFigArchive({
-      schemaDeflated: deflateSync(getSchemaBytes()),
-      kiwiData: encodeMessage(createNodeChangesMessage(0, 0, records)),
-      thumbnailPNG: new Uint8Array(),
-      metaJSON: '{}'
-    })
-    const bytes = new Uint8Array(archive).buffer
+    const bytes = await figArchiveOf(records)
     const initial = createFigDocumentSession(bytes)
     initial.loadPage(first)
     const before = initial.checkpoint()
