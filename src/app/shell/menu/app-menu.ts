@@ -112,6 +112,7 @@ export function useAppMenu() {
     open: 'open',
     'browse-files': 'browseFiles',
     'open-tour': 'openTour',
+    diagnostics: 'diagnostics',
     save: 'save',
     'save-as': 'saveAs',
     'save-to': 'saveTo',
@@ -196,10 +197,8 @@ export function useAppMenu() {
     'previous-tab': () => switchAdjacentTab(-1),
     'next-tab': () => switchAdjacentTab(1),
     settings: openSettingsDialog,
+    diagnostics: () => openSettingsDialog('diagnostics'),
     variables: () => openVariablesDialog(store),
-    'insert-icon': () => {
-      store.state.iconPickerOpen = true
-    },
     'export-png': () => exportSelection('png'),
     'export-svg': () => exportSelection('svg'),
     'export-pptx': () => exportSelection('pptx'),
@@ -357,8 +356,8 @@ export function useAppMenu() {
   }
 
   function groupLabel(group: AppMenuGroupSchema): string {
-    const key = group.label.toLowerCase() as keyof typeof menu.value
-    return menu.value[key] ?? group.label
+    const key = group.label.toLowerCase()
+    return key in menu.value ? menu.value[key as keyof typeof menu.value] : group.label
   }
 
   function buildGroup(group: AppMenuGroupSchema): AppMenuGroup | null {
